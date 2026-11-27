@@ -83,6 +83,7 @@ jobs:
               find "$ffmpeg_bundle" -type f -name "libav*.so*" -exec patchelf --set-rpath "\$ORIGIN" {} \;
               patchelf --set-rpath "\$ORIGIN/vac3-ffmpeg" "$module"
 
+              unset LD_LIBRARY_PATH
               ldd "$module" | tee /src/package-root/usr/share/doc/virtual-ac3-encoder/module-runtime-dependencies.txt
               ! grep -q "not found" /src/package-root/usr/share/doc/virtual-ac3-encoder/module-runtime-dependencies.txt
               grep -q "/vac3-ffmpeg/libavcodec.so" /src/package-root/usr/share/doc/virtual-ac3-encoder/module-runtime-dependencies.txt
