@@ -1,0 +1,82 @@
+name: Standalone CachyOS Release
+
+on:
+  push:
+    branches:
+      - 'release/**'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Build against current Arch Linux packages
+        run: |
+          docker run --rm \
+            -v "${PWD}:/src" \
+            -w /src \
+            archlinux:latest \
+            bash -euo pipefail -c '
+              pacman -Syu --noconfirm
+              pacman -S --needed --noconfirm base-devel meson ninja pkgconf pipewire ffmpeg
+              meson setup build-release --prefix=/usr --buildtype=release
+              meson compile -C build-release
+              meson test -C build-release --print-errorlogs
+              meson install -C build-release --destdir /src/package-root
+              install -Dm644 LICENSE /src/package-root/usr/share/licenses/pipewire-module-virtual-ac3-encoder/LICENSE
+              install -Dm644 NOTICE.md /src/package-root/usr/share/doc/pipewire-module-virtual-ac3-encoder/NOTICE.md
+            '
+
+      - name: Create release archives and checksums
+        run: |
+          tar -C package-root -czf virtual-ac3-encoder-cachyos-x86_64.tar.gz .
+          sha256sum virtual-ac3-encoder-cachyos-x86_64.tar.gz > virtual-ac3-encoder-cachyos-x86_64.tar.gz.sha256
+          file package-root/usr/lib/pipewire-0.3/libpipewire-module-virtual-ac3-encoder.so
+          tar -tzf virtual-ac3-encoder-cachyos-x86_64.tar.gz
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.0-alpha1
+          name: Virtual AC-3 Encoder Linux v0.1.0-alpha1
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          draft: false
+          make_latest: false
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          body: |
+            ## Virtual AC-3 Encoder Linux — v0.1.0-alpha1
+
+            First standalone CachyOS / Arch Linux x86_64 binary release.
+
+            ### Included
+            - PipeWire virtual 5.1 sink module
+            - FFmpeg AC-3 encoding up to 640 kbit/s
+            - IEC 61937 AC-3 output
+            - PipeWire configuration preset (EXTREME latency, 640 kbit/s)
+            - LICENSE and NOTICE
+
+            ### Install
+            ```bash
+            sudo pacman -S --needed pipewire ffmpeg
+            tar -xzf virtual-ac3-encoder-cachyos-x86_64.tar.gz
+            sudo tar -C / -xzf virtual-ac3-encoder-cachyos-x86_64.tar.gz
+            systemctl --user restart pipewire pipewire-pulse wireplumber
+            ```
+
+            ### Runtime requirements
+            This is a PipeWire loadable module, not a self-contained desktop application. It dynamically links to the host's PipeWire and FFmpeg libraries. The release is built against current Arch Linux packages; the matching runtime ABI is required.
+
+            ### Validation status
+            The Arch Linux build and core tests must pass in this release workflow. Physical HDMI / S/PDIF / eARC playback and end-to-end latency have not yet been validated on hardware. This is an experimental alpha.
+          files: |
+            virtual-ac3-encoder-cachyos-x86_64.tar.gz
+            virtual-ac3-encoder-cachyos-x86_64.tar.gz.sha256
