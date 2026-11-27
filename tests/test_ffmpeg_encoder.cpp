@@ -16,25 +16,40 @@ int main() {
         return 1;
     }
 
+    AVSampleFormat format = AV_SAMPLE_FMT_NONE;
+    if (codec->sample_fmts) {
+        for (const AVSampleFormat* candidate = codec->sample_fmts;
+             *candidate != AV_SAMPLE_FMT_NONE; ++candidate) {
+            if (*candidate == AV_SAMPLE_FMT_FLTP || *candidate == AV_SAMPLE_FMT_S16P) {
+                format = *candidate;
+                break;
+            }
+        }
+    }
+    if (format == AV_SAMPLE_FMT_NONE) {
+        std::fprintf(stderr, "AC-3 encoder exposes no supported planar format\n");
+        return 2;
+    }
+
     AVCodecContext* context = avcodec_alloc_context3(codec);
-    if (!context) return 2;
+    if (!context) return 3;
 
     context->sample_rate = 48000;
     context->bit_rate = 640000;
     context->time_base = AVRational{1, 48000};
     context->thread_count = 1;
-    context->sample_fmt = AV_SAMPLE_FMT_FLTP;
+    context->sample_fmt = format;
     const AVChannelLayout layout = AV_CHANNEL_LAYOUT_5POINT1_BACK;
     if (av_channel_layout_copy(&context->ch_layout, &layout) < 0) {
         avcodec_free_context(&context);
-        return 3;
+        return 4;
     }
 
     int result = avcodec_open2(context, codec, nullptr);
     if (result < 0) {
         std::fprintf(stderr, "AC-3 encoder open failed: %d\n", result);
         avcodec_free_context(&context);
-        return 4;
+        return 5;
     }
 
     AVFrame* frame = av_frame_alloc();
@@ -43,7 +58,7 @@ int main() {
         av_frame_free(&frame);
         av_packet_free(&packet);
         avcodec_free_context(&context);
-        return 5;
+        return 6;
     }
 
     frame->format = context->sample_fmt;
@@ -56,7 +71,7 @@ int main() {
         av_frame_free(&frame);
         av_packet_free(&packet);
         avcodec_free_context(&context);
-        return 6;
+        return 7;
     }
 
     result = avcodec_send_frame(context, frame);
@@ -72,5 +87,5 @@ int main() {
     av_frame_free(&frame);
     av_packet_free(&packet);
     avcodec_free_context(&context);
-    return encoded ? 0 : 7;
+    return encoded ? 0 : 8;
 }
