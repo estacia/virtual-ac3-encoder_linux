@@ -1,6 +1,6 @@
 _pkgname=virtual-ac3-encoder-linux
 pkgname=pipewire-module-virtual-ac3-encoder-git
-pkgver=0.1.0.alpha1.r0.g0000000
+pkgver=0.1.0.alpha2.r0.g0000000
 pkgrel=1
 pkgdesc='Low-latency PipeWire virtual 5.1 sink with Dolby Digital AC-3 / IEC 61937 output'
 arch=('x86_64' 'aarch64')
@@ -20,7 +20,7 @@ pkgver() {
   if [[ -n "${described}" ]]; then
     printf '%s' "${described#v}" | sed 's/-/./g'
   else
-    printf '0.1.0.alpha1.r%s.g%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+    printf '0.1.0.alpha2.r%s.g%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
   fi
 }
 
