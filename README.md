@@ -2,7 +2,7 @@
 
 Linux-native continuation of `estacia/virtual-ac3-encoder_Dual`, intended for CachyOS and other Arch-based distributions using PipeWire.
 
-> **Status: experimental alpha.** The first implementation contains a native PipeWire module, a real-time AC-3/IEC 61937 path, a 5.1 virtual sink, and core unit tests. It has not yet been compiled or exercised on a physical CachyOS HDMI/eARC chain. Do not treat this alpha as a validated replacement for the Windows build.
+> **Status: experimental alpha.** The implementation contains a native PipeWire module, a real-time AC-3/IEC 61937 path, a 5.1 virtual sink, and core unit tests. The module has compiled and the core tests have passed in both Ubuntu and Arch Linux CI. It has not yet been exercised on a physical CachyOS HDMI/eARC chain. Do not treat this alpha as a validated replacement for the Windows build.
 
 ## Design goals
 
