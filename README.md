@@ -31,6 +31,21 @@ The AC-3 codec still operates on 1,536-sample frames. At 48 kHz that is 32 ms of
 | GUI / telemetry | Not included in alpha; CLI/module properties first |
 | Kernel driver | Not needed; PipeWire provides the virtual sink |
 
+## Prebuilt standalone release
+
+Prebuilt x86_64 packages are published on the [GitHub Releases page](https://github.com/estacia/virtual-ac3-encoder_linux/releases). The release archive contains the PipeWire module, its system-wide PipeWire configuration, and the license / notice files. It can be installed without cloning the repository or compiling the source.
+
+Install the host runtime libraries and extract the release archive:
+
+```bash
+sudo pacman -S --needed pipewire ffmpeg
+tar -xzf virtual-ac3-encoder-cachyos-x86_64.tar.gz
+sudo tar -C / -xzf virtual-ac3-encoder-cachyos-x86_64.tar.gz
+systemctl --user restart pipewire pipewire-pulse wireplumber
+```
+
+This is a PipeWire loadable module, not a self-contained desktop application. It dynamically links to the host's PipeWire and FFmpeg shared libraries; the release requires compatible runtime ABI versions. The first binary release targets x86_64 Arch-based systems. Physical HDMI / S/PDIF / eARC playback and end-to-end latency still require validation on the target hardware.
+
 ## Build on CachyOS
 
 Install the build dependencies:
