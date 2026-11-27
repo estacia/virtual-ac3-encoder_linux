@@ -1,0 +1,23 @@
+Virtual AC-3 Encoder Linux portable FFmpeg runtime notice
+==========================================================
+
+Bundled component:
+  FFmpeg 9.1
+  Upstream source: https://ffmpeg.org/releases/ffmpeg-9.1.tar.xz
+  Libraries: libavcodec and libavutil (shared libraries)
+  Enabled encoders: ac3 and ac3_fixed
+  Disabled: GPL components, x86 assembly, programs, network, and unrelated codecs/libraries
+
+License:
+  GNU Lesser General Public License, version 2.1 or later (LGPL-2.1-or-later).
+  The exact license text is installed alongside this package as
+  /usr/share/licenses/virtual-ac3-encoder/FFmpeg-LGPL-2.1.txt.
+
+Corresponding source:
+  The matching ffmpeg-9.1.tar.xz source archive is attached to the v0.1.0-alpha2
+  GitHub Release together with its SHA-256 checksum. No FFmpeg source modifications
+  are applied by this build.
+
+PipeWire:
+  PipeWire is not bundled. The module is loaded into the system PipeWire daemon
+  and links to the host's libpipewire-0.3 ABI.
