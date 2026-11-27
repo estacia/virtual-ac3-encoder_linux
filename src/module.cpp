@@ -75,8 +75,9 @@ struct ModuleData {
     std::size_t pauseOffset = 0;
 
     ModuleData(std::uint32_t safe, std::uint32_t q, int br, UpmixMode mode)
-        : safeFrames(std::clamp(safe, kMinSafeFrames, kMaxSafeFrames)),
-          quantum(std::clamp(q, 64u, 1024u)), bitrate(br), dsp(mode) {
+        : dsp(mode),
+          safeFrames(std::clamp(safe, kMinSafeFrames, kMaxSafeFrames)),
+          quantum(std::clamp(q, 64u, 1024u)), bitrate(br) {
         sem_init(&workSignal, 0, 0);
         make_pause_burst(pauseBurst.data());
     }
@@ -370,7 +371,7 @@ extern "C" SPA_EXPORT int pipewire__module_init(pw_impl_module* module, const ch
     int result = pw_stream_connect(data->capture, PW_DIRECTION_INPUT, PW_ID_ANY,
                                    flags, captureParams, 1);
     if (result < 0) {
-        pw_log_error("spdif-encode: virtual capture stream connect failed: %s", spa_strerror(result));
+        pw_log_error("spdif-encode: virtual capture stream connect failed (error=%d)", result);
         spa_hook_remove(&data->moduleListener);
         delete data;
         pw_properties_free(properties);
@@ -419,7 +420,7 @@ extern "C" SPA_EXPORT int pipewire__module_init(pw_impl_module* module, const ch
     result = pw_stream_connect(data->playback, PW_DIRECTION_OUTPUT, PW_ID_ANY,
                                playbackFlags, playbackParams, 1);
     if (result < 0) {
-        pw_log_error("spdif-encode: output stream connect failed: %s", spa_strerror(result));
+        pw_log_error("spdif-encode: output stream connect failed (error=%d)", result);
         spa_hook_remove(&data->moduleListener);
         delete data;
         pw_properties_free(properties);
