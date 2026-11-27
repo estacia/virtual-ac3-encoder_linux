@@ -33,10 +33,12 @@ jobs:
             bash -euo pipefail -c '
               pacman -Syu --noconfirm
               pacman -S --needed --noconfirm base-devel meson ninja pkgconf pipewire ffmpeg
-              meson setup build-arch --buildtype=release
+              meson setup build-arch --prefix=/usr --buildtype=release
               meson compile -C build-arch
               meson test -C build-arch --print-errorlogs
               meson install -C build-arch --destdir /src/package-root
+              install -Dm644 LICENSE /src/package-root/usr/share/licenses/pipewire-module-virtual-ac3-encoder-git/LICENSE
+              install -Dm644 NOTICE.md /src/package-root/usr/share/doc/pipewire-module-virtual-ac3-encoder-git/NOTICE.md
             '
       - name: Create CachyOS x86_64 package archive
         run: |
