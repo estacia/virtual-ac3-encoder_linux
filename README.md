@@ -35,16 +35,15 @@ The AC-3 codec still operates on 1,536-sample frames. At 48 kHz that is 32 ms of
 
 Prebuilt x86_64 packages are published on the [GitHub Releases page](https://github.com/estacia/virtual-ac3-encoder_linux/releases). The release archive contains the PipeWire module, its system-wide PipeWire configuration, and the license / notice files. It can be installed without cloning the repository or compiling the source.
 
-Install the host runtime libraries and extract the release archive:
+The portable alpha2 bundle contains private FFmpeg 9.1 shared libraries (minimal AC-3 encoder build), so the host FFmpeg package is not needed. Install the PipeWire host daemon and extract the release archive:
 
 ```bash
-sudo pacman -S --needed pipewire ffmpeg
-tar -xzf virtual-ac3-encoder-cachyos-x86_64.tar.gz
-sudo tar -C / -xzf virtual-ac3-encoder-cachyos-x86_64.tar.gz
+sudo pacman -S --needed pipewire
+sudo tar -C / -xzf virtual-ac3-encoder-cachyos-x86_64-ffmpeg-bundled.tar.gz
 systemctl --user restart pipewire pipewire-pulse wireplumber
 ```
 
-This is a PipeWire loadable module, not a self-contained desktop application. It dynamically links to the host's PipeWire and FFmpeg shared libraries; the release requires compatible runtime ABI versions. The first binary release targets x86_64 Arch-based systems. Physical HDMI / S/PDIF / eARC playback and end-to-end latency still require validation on the target hardware.
+This remains a PipeWire loadable module, not a self-contained audio server. It must load into the host's running PipeWire daemon and therefore uses the host-compatible libpipewire-0.3 ABI. Bundling a second PipeWire daemon or private libpipewire copy inside the module would be unsafe and would not create a virtual sink in the host audio graph. The host must provide PipeWire, glibc, libstdc++, and standard system libraries; it does not need FFmpeg. This first portable bundle targets x86_64 Arch-based systems. Physical HDMI / S/PDIF / eARC playback and end-to-end latency still require validation on target hardware.
 
 ## Build on CachyOS
 
@@ -147,4 +146,4 @@ The script configures `origin` to this repository if needed and pushes the curre
 
 ## License and provenance
 
-MIT. See `LICENSE` and `NOTICE.md`. FFmpeg and PipeWire remain external system dependencies and retain their respective licenses.
+MIT. See `LICENSE` and `NOTICE.md`. The portable release bundles its minimal LGPL FFmpeg runtime; the source-build path uses system FFmpeg development files. PipeWire remains a host runtime dependency because the module loads into the running PipeWire daemon.
