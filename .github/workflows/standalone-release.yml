@@ -48,7 +48,6 @@ jobs:
                 --disable-avformat \
                 --disable-swresample \
                 --disable-swscale \
-                --disable-postproc \
                 --disable-avfilter \
                 --enable-encoder=ac3 \
                 --enable-encoder=ac3_fixed \
