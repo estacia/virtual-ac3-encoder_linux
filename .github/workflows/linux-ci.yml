@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  build-ubuntu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,3 +19,34 @@ jobs:
         run: meson compile -C build
       - name: Test
         run: meson test -C build --print-errorlogs
+
+  build-arch-cachyos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and package against Arch Linux packages
+        run: |
+          docker run --rm \
+            -v "${PWD}:/src" \
+            -w /src \
+            archlinux:latest \
+            bash -euo pipefail -c '
+              pacman -Syu --noconfirm
+              pacman -S --needed --noconfirm base-devel meson ninja pkgconf pipewire ffmpeg
+              meson setup build-arch --buildtype=release
+              meson compile -C build-arch
+              meson test -C build-arch --print-errorlogs
+              meson install -C build-arch --destdir /src/package-root
+            '
+      - name: Create CachyOS x86_64 package archive
+        run: |
+          tar -C package-root -czf virtual-ac3-encoder-cachyos-x86_64.tar.gz .
+          sha256sum virtual-ac3-encoder-cachyos-x86_64.tar.gz > virtual-ac3-encoder-cachyos-x86_64.tar.gz.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: virtual-ac3-encoder-cachyos-x86_64
+          path: |
+            virtual-ac3-encoder-cachyos-x86_64.tar.gz
+            virtual-ac3-encoder-cachyos-x86_64.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 30
