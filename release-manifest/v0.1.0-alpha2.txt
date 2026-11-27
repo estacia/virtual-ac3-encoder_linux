@@ -1,0 +1,6 @@
+Release target: v0.1.0-alpha2
+Architecture: x86_64
+Distribution family: CachyOS / Arch Linux
+PipeWire: host libpipewire-0.3 ABI required; not bundled
+FFmpeg: private FFmpeg 9.1 minimal LGPL shared runtime bundled
+Encoders: ac3, ac3_fixed
