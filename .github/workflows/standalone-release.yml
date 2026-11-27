@@ -17,7 +17,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - name: Build against current Arch Linux packages
+      - name: Build minimal LGPL FFmpeg runtime and PipeWire module on Arch Linux
         run: |
           docker run --rm \
             -v "${PWD}:/src" \
@@ -25,27 +25,93 @@ jobs:
             archlinux:latest \
             bash -euo pipefail -c '
               pacman -Syu --noconfirm
-              pacman -S --needed --noconfirm base-devel meson ninja pkgconf pipewire ffmpeg
+              pacman -S --needed --noconfirm base-devel meson ninja pkgconf pipewire curl xz patchelf
+
+              curl -fL --retry 3 https://ffmpeg.org/releases/ffmpeg-9.1.tar.xz -o /src/ffmpeg-9.1.tar.xz
+              mkdir -p /tmp/ffmpeg-src
+              tar -xf /src/ffmpeg-9.1.tar.xz -C /tmp/ffmpeg-src
+              cd /tmp/ffmpeg-src/ffmpeg-9.1
+
+              ./configure \
+                --prefix=/opt/vac3-ffmpeg \
+                --libdir=/opt/vac3-ffmpeg/lib \
+                --shlibdir=/opt/vac3-ffmpeg/lib \
+                --incdir=/opt/vac3-ffmpeg/include \
+                --disable-programs \
+                --disable-doc \
+                --disable-debug \
+                --disable-network \
+                --disable-autodetect \
+                --disable-everything \
+                --disable-x86asm \
+                --disable-avdevice \
+                --disable-avformat \
+                --disable-swresample \
+                --disable-swscale \
+                --disable-postproc \
+                --disable-avfilter \
+                --enable-encoder=ac3 \
+                --enable-encoder=ac3_fixed \
+                --enable-shared \
+                --disable-static \
+                --enable-pic \
+                --enable-pthreads
+
+              make -j"$(nproc)"
+              make install
+
+              export PKG_CONFIG_PATH=/opt/vac3-ffmpeg/lib/pkgconfig
+              export LD_LIBRARY_PATH=/opt/vac3-ffmpeg/lib
+              cd /src
+              pkgconf --modversion libavcodec
               meson setup build-release --prefix=/usr --buildtype=release
               meson compile -C build-release
               meson test -C build-release --print-errorlogs
+
               meson install -C build-release --destdir /src/package-root
-              install -Dm644 LICENSE /src/package-root/usr/share/licenses/pipewire-module-virtual-ac3-encoder/LICENSE
-              install -Dm644 NOTICE.md /src/package-root/usr/share/doc/pipewire-module-virtual-ac3-encoder/NOTICE.md
+              install -Dm644 LICENSE /src/package-root/usr/share/licenses/virtual-ac3-encoder/LICENSE
+              install -Dm644 NOTICE.md /src/package-root/usr/share/doc/virtual-ac3-encoder/NOTICE.md
+              install -Dm644 /tmp/ffmpeg-src/ffmpeg-9.1/COPYING.LGPLv2.1 /src/package-root/usr/share/licenses/virtual-ac3-encoder/FFmpeg-LGPL-2.1.txt
+              install -Dm644 /tmp/ffmpeg-src/ffmpeg-9.1/LICENSE.md /src/package-root/usr/share/doc/virtual-ac3-encoder/FFmpeg-LICENSE.md
+              install -Dm644 /src/FFmpeg-BUNDLE-NOTICE.txt /src/package-root/usr/share/doc/virtual-ac3-encoder/FFmpeg-BUNDLE-NOTICE.txt
+
+              module=/src/package-root/usr/lib/pipewire-0.3/libpipewire-module-virtual-ac3-encoder.so
+              ffmpeg_bundle=/src/package-root/usr/lib/pipewire-0.3/vac3-ffmpeg
+              install -d "$ffmpeg_bundle"
+              cp -a /opt/vac3-ffmpeg/lib/libavcodec.so* "$ffmpeg_bundle/"
+              cp -a /opt/vac3-ffmpeg/lib/libavutil.so* "$ffmpeg_bundle/"
+
+              find "$ffmpeg_bundle" -type f -name "libav*.so*" -exec patchelf --set-rpath "\$ORIGIN" {} \;
+              patchelf --set-rpath "\$ORIGIN/vac3-ffmpeg" "$module"
+
+              ldd "$module" | tee /src/package-root/usr/share/doc/virtual-ac3-encoder/module-runtime-dependencies.txt
+              ! grep -q "not found" /src/package-root/usr/share/doc/virtual-ac3-encoder/module-runtime-dependencies.txt
+              grep -q "/vac3-ffmpeg/libavcodec.so" /src/package-root/usr/share/doc/virtual-ac3-encoder/module-runtime-dependencies.txt
+              grep -q "/vac3-ffmpeg/libavutil.so" /src/package-root/usr/share/doc/virtual-ac3-encoder/module-runtime-dependencies.txt
+              grep -q "libpipewire-0.3.so" /src/package-root/usr/share/doc/virtual-ac3-encoder/module-runtime-dependencies.txt
+
+              cat > /src/package-root/usr/share/doc/virtual-ac3-encoder/bundle-info.txt <<EOF
+              FFmpeg runtime: 9.1 (minimal LGPL shared build; AC-3 encoders only)
+              Bundled libraries: libavcodec and libavutil
+              PipeWire: intentionally uses the host PipeWire daemon and libpipewire-0.3 ABI
+              Required host runtime: PipeWire, glibc, libstdc++, and standard system libraries
+              This package does not require the host FFmpeg package.
+              EOF
             '
 
-      - name: Create release archives and checksums
+      - name: Create portable runtime archive and checksums
         run: |
-          tar -C package-root -czf virtual-ac3-encoder-cachyos-x86_64.tar.gz .
-          sha256sum virtual-ac3-encoder-cachyos-x86_64.tar.gz > virtual-ac3-encoder-cachyos-x86_64.tar.gz.sha256
+          tar -C package-root -czf virtual-ac3-encoder-cachyos-x86_64-ffmpeg-bundled.tar.gz .
+          sha256sum virtual-ac3-encoder-cachyos-x86_64-ffmpeg-bundled.tar.gz > virtual-ac3-encoder-cachyos-x86_64-ffmpeg-bundled.tar.gz.sha256
+          sha256sum ffmpeg-9.1.tar.xz > ffmpeg-9.1.tar.xz.sha256
           file package-root/usr/lib/pipewire-0.3/libpipewire-module-virtual-ac3-encoder.so
-          tar -tzf virtual-ac3-encoder-cachyos-x86_64.tar.gz
+          tar -tzf virtual-ac3-encoder-cachyos-x86_64-ffmpeg-bundled.tar.gz
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-alpha1
-          name: Virtual AC-3 Encoder Linux v0.1.0-alpha1
+          tag_name: v0.1.0-alpha2
+          name: Virtual AC-3 Encoder Linux v0.1.0-alpha2
           target_commitish: ${{ github.sha }}
           prerelease: true
           draft: false
@@ -53,30 +119,32 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           body: |
-            ## Virtual AC-3 Encoder Linux — v0.1.0-alpha1
+            ## Virtual AC-3 Encoder Linux — v0.1.0-alpha2
 
-            First standalone CachyOS / Arch Linux x86_64 binary release.
+            Portable CachyOS / Arch Linux x86_64 bundle with a private FFmpeg runtime.
 
             ### Included
             - PipeWire virtual 5.1 sink module
-            - FFmpeg AC-3 encoding up to 640 kbit/s
-            - IEC 61937 AC-3 output
-            - PipeWire configuration preset (EXTREME latency, 640 kbit/s)
-            - LICENSE and NOTICE
+            - FFmpeg 9.1 libavcodec and libavutil shared libraries bundled privately
+            - Only the AC-3 / AC-3 fixed-point encoders enabled in the bundled FFmpeg build
+            - IEC 61937 AC-3 output up to 640 kbit/s
+            - EXTREME 128-frame preset and system-wide PipeWire configuration
+            - FFmpeg LGPL license and notices
 
             ### Install
             ```bash
-            sudo pacman -S --needed pipewire ffmpeg
-            tar -xzf virtual-ac3-encoder-cachyos-x86_64.tar.gz
-            sudo tar -C / -xzf virtual-ac3-encoder-cachyos-x86_64.tar.gz
+            sudo pacman -S --needed pipewire
+            sudo tar -C / -xzf virtual-ac3-encoder-cachyos-x86_64-ffmpeg-bundled.tar.gz
             systemctl --user restart pipewire pipewire-pulse wireplumber
             ```
 
-            ### Runtime requirements
-            This is a PipeWire loadable module, not a self-contained desktop application. It dynamically links to the host's PipeWire and FFmpeg libraries. The release is built against current Arch Linux packages; the matching runtime ABI is required.
+            The host FFmpeg package is not required. PipeWire itself is intentionally not bundled: this is a PipeWire module loaded into the already-running system daemon, and loading a private PipeWire copy into that daemon is ABI-unsafe. The host must provide a compatible libpipewire-0.3 runtime plus glibc / C++ runtime libraries.
 
-            ### Validation status
-            The Arch Linux build and core tests must pass in this release workflow. Physical HDMI / S/PDIF / eARC playback and end-to-end latency have not yet been validated on hardware. This is an experimental alpha.
+            The matching FFmpeg 9.1 source archive and SHA-256 are attached to satisfy source availability for the bundled LGPL libraries. Build settings disable GPL components and x86 assembly.
+
+            The Arch build and AC-3 encoder smoke test must pass before publication. Physical HDMI / S/PDIF / eARC playback and end-to-end latency remain unverified on hardware. Experimental alpha.
           files: |
-            virtual-ac3-encoder-cachyos-x86_64.tar.gz
-            virtual-ac3-encoder-cachyos-x86_64.tar.gz.sha256
+            virtual-ac3-encoder-cachyos-x86_64-ffmpeg-bundled.tar.gz
+            virtual-ac3-encoder-cachyos-x86_64-ffmpeg-bundled.tar.gz.sha256
+            ffmpeg-9.1.tar.xz
+            ffmpeg-9.1.tar.xz.sha256
