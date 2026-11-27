@@ -1,7 +1,7 @@
 project(
   'virtual-ac3-encoder-linux',
   'cpp',
-  version : '0.1.0-alpha.1',
+  version : '0.1.0-alpha.2',
   default_options : [
     'cpp_std=c++20',
     'warning_level=2',
