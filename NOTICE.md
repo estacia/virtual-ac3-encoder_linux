@@ -14,14 +14,12 @@ and its notices remain available in its own repository.
 
 ## FFmpeg
 
-This project dynamically links the system FFmpeg libraries (`libavcodec` and `libavutil`).
-FFmpeg is licensed under LGPL-2.1-or-later or GPL-2.0-or-later depending on build configuration.
-No FFmpeg source or binary is bundled here. See <https://ffmpeg.org/legal.html>.
+The source build links against the FFmpeg libraries supplied by the build system. The portable alpha2 release bundles a minimal shared FFmpeg 9.1 runtime containing libavcodec and libavutil with only the AC-3 encoders enabled. It is built without GPL components and without x86 assembly, and is distributed under LGPL-2.1-or-later. The release includes the matching FFmpeg 9.1 source archive and the LGPL license text. See FFmpeg-BUNDLE-NOTICE.txt and the release assets.
 
 ## PipeWire
 
-This project dynamically links the system PipeWire libraries. PipeWire is licensed under the
-MIT license. No PipeWire source or binary is bundled here. See <https://pipewire.org/>.
+The module dynamically links to the host PipeWire daemon's libpipewire-0.3 ABI. PipeWire itself is deliberately not bundled: a PipeWire module must be loaded into the already-running host daemon, and loading a second private PipeWire copy into that process is not ABI-safe. PipeWire remains an external runtime dependency and retains its MIT license. See <https://pipewire.org/>.
+
 
 ## Linux port scope
 
